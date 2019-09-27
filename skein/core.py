@@ -247,15 +247,23 @@ def _start_driver(security=None, set_global=False, keytab=None, principal=None,
                 connection = callback.accept()[0]
                 with closing(connection):
                     stream = connection.makefile(mode="rb")
-                    msg = stream.read(4)
-                    if not msg:
+                    msg_port = stream.read(4)
+                    if not msg_port:
                         raise DriverError("Failed to read in client port")
-                    port = struct.unpack("!i", msg)[0]
+                    port = struct.unpack("!i", msg_port)[0]
+                    msg_length = stream.read(2)
+                    if not msg_length:
+                        raise DriverError("Failed to read length of hostname adresse")
+                    length = struct.unpack("!h", msg_length)[0]
+                    msg_hostname = stream.read(length)
+                    if not msg_hostname:
+                        raise DriverError("Failed to read hostname adresse")
+                    hostname = msg_hostname.decode('utf-8')
                     break
         else:
             raise DriverError("Failed to start java process")
 
-    address = '127.0.0.1:%d' % port
+    address = '%s:%d' % (hostname,port)
 
     if set_global:
         Client.stop_global_driver()

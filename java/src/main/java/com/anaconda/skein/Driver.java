@@ -57,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -118,7 +119,13 @@ public class Driver {
   private final Map<ApplicationId, List<StreamObserver<Msg.ApplicationReport>>> startedCallbacks =
       new HashMap<ApplicationId, List<StreamObserver<Msg.ApplicationReport>>>();
 
+  private  InetAddress ip = null;
+  private String hostname = null;
+
   private void startServer() throws IOException {
+
+    ip = InetAddress.getLocalHost();
+    hostname = ip.getHostAddress();
     // Setup and start the server
     SslContext sslContext = GrpcSslContexts
         .forServer(certBytes.newInput(), keyBytes.newInput())
@@ -134,7 +141,8 @@ public class Driver {
         MAX_GRPC_EXECUTOR_THREADS,
         true);
 
-    server = NettyServerBuilder.forAddress(new InetSocketAddress("127.0.0.1", 0))
+    LOG.debug("HostAddress: " + ip.getHostAddress());
+    server = NettyServerBuilder.forAddress(new InetSocketAddress(hostname, 0))
         .sslContext(sslContext)
         .addService(new DriverImpl())
         .workerEventLoopGroup(eg)
@@ -143,7 +151,7 @@ public class Driver {
         .build()
         .start();
 
-    LOG.info("Driver started, listening on {}", server.getPort());
+    LOG.info("Public Driver started, listening on {}", server.getPort());
 
     Runtime.getRuntime().addShutdownHook(
         new Thread() {
@@ -203,6 +211,7 @@ public class Driver {
       System.exit(1);
     }
     callbackPort = Integer.valueOf(callbackPortEnv);
+    LOG.debug("CallbackPort: " + callbackPort);
 
     // Parse arguments
     int i = 0;
@@ -291,6 +300,7 @@ public class Driver {
     Socket callback = new Socket("127.0.0.1", callbackPort);
     DataOutputStream dos = new DataOutputStream(callback.getOutputStream());
     dos.writeInt(server.getPort());
+    dos.writeUTF(hostname);
     dos.close();
     callback.close();
 
