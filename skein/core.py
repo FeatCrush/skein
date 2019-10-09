@@ -253,11 +253,11 @@ def _start_driver(security=None, set_global=False, keytab=None, principal=None,
                     port = struct.unpack("!i", msg_port)[0]
                     msg_length = stream.read(2)
                     if not msg_length:
-                        raise DriverError("Failed to read length of hostname adresse")
+                        raise DriverError("Failed to read length of hostname address")
                     length = struct.unpack("!h", msg_length)[0]
                     msg_hostname = stream.read(length)
                     if not msg_hostname:
-                        raise DriverError("Failed to read hostname adresse")
+                        raise DriverError("Failed to read hostname address")
                     hostname = msg_hostname.decode('utf-8')
                     break
         else:
